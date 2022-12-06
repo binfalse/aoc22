@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::sync::Mutex;
 
+#[derive(Debug, Clone)]
 struct Stack {
     chars: Vec<char>,
 }
@@ -22,11 +23,11 @@ impl Stack {
     }
 }
 
-impl fmt::Display for Stack {
+/*impl fmt::Display for Stack {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.chars)
     }
-}
+}*/
 
 struct Action {
     num: usize,
@@ -122,12 +123,16 @@ pub fn aoc05() {
         }
     }
 
-    let mut stacks2: Vec<Mutex<Stack>> = vec![];
-    for stack in stacks.iter() {
-        stacks2.push(Mutex::new(Stack {
-            chars: stack.lock().unwrap().chars.to_vec(),
-        }));
-    }
+    // let mut stacks2: Vec<Mutex<Stack>> = vec![];
+    // for stack in stacks.iter() {
+    // stacks2.push(Mutex::new(Stack {
+    // chars: stack.lock().unwrap().chars.to_vec(),
+    // }));
+    // }
+    let mut stacks2 = stacks
+        .iter()
+        .map(|s| Mutex::new(s.lock().unwrap().clone()))
+        .collect::<Vec<_>>();
 
     aoc05_1(&mut stacks, &actions);
     aoc05_2(&mut stacks2, &actions);
