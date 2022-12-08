@@ -1,12 +1,15 @@
+use min_max::*;
 use std::fmt::{self, Display};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::ops::{Deref, Range};
+use std::option::Iter;
 
 const RADIX: u32 = 10;
 
 #[derive(Debug, Clone)]
 struct Map {
-    matrix: Vec<Vec<u32>>,
+    matrix: Vec<Vec<usize>>,
     rows: usize,
     columns: usize,
 }
@@ -16,7 +19,7 @@ impl fmt::Display for Map {
     }
 }
 impl Map {
-    fn value(&self, row: usize, column: usize) -> u32 {
+    fn value(&self, row: usize, column: usize) -> usize {
         self.matrix.get(row).unwrap().get(column).unwrap().clone()
     }
 
@@ -24,93 +27,70 @@ impl Map {
         row == 0 || column == 0 || row == self.rows - 1 || column == self.columns - 1
     }
 
-    fn scenic_score(&self, row: usize, column: usize) -> u32 {
+    fn scenic_score_row<I>(&self, range: I, column: usize, value: usize) -> usize
+    where
+        I: Iterator<Item = usize>,
+    {
+        range.take_while(|r| self.value(*r, column) < value).count()
+    }
+
+    fn scenic_score_col(
+        &self,
+        range: impl Iterator<Item = usize>,
+        row: usize,
+        value: usize,
+    ) -> usize {
+        range.take_while(|c| self.value(row, *c) < value).count()
+    }
+
+    fn scenic_score(&self, row: usize, column: usize) -> usize {
         let value = self.value(row, column);
+        let mut score: usize = 1;
 
-        let mut score: u32 = 1;
-        let mut n = 0;
+        // rows before
+        score *= min!(
+            row,
+            self.scenic_score_row((0..row).rev(), column, value) + 1
+        );
 
-        for r in (0..row).rev() {
-            n += 1;
-            if self.value(r, column) >= value && r != row {
-                break;
-            }
-        }
-        score *= n;
-        n = 0;
-        for r in row + 1..self.rows {
-            n += 1;
-            if self.value(r, column) >= value && r != row {
-                break;
-            }
-        }
-        score *= n;
-        n = 0;
-        for c in (0..column).rev() {
-            n += 1;
-            if self.value(row, c) >= value && c != column {
-                break;
-            }
-        }
-        score *= n;
-        n = 0;
-        for c in column + 1..self.columns {
-            n += 1;
-            if self.value(row, c) >= value && c != column {
-                break;
-            }
-        }
-        score *= n;
-        return score;
+        // rows after
+        score *= min!(
+            self.rows - row - 1,
+            self.scenic_score_row((row + 1..self.rows), column, value) + 1
+        );
+
+        // cols before
+        score *= min!(
+            column,
+            self.scenic_score_col((0..column).rev(), row, value) + 1
+        );
+
+        // cols after
+        score *= min!(
+            self.columns - column - 1,
+            self.scenic_score_col(column + 1..self.columns, row, value) + 1
+        );
+
+        score
     }
 
     fn is_visible(&self, row: usize, column: usize) -> bool {
         let value = self.value(row, column);
 
-        let mut visible = true;
-
-        for r in 0..row {
-            if self.value(r, column) >= value && row != r {
-                visible = false;
-                break;
-            }
-        }
-        if visible {
+        if (0..row).all(|r| self.value(r, column) < value) {
             return true;
         }
-        visible = true;
-
-        for r in row + 1..self.rows {
-            if self.value(r, column) >= value && row != r {
-                visible = false;
-                break;
-            }
-        }
-        if visible {
+        if (row + 1..self.rows).all(|r| self.value(r, column) < value) {
             return true;
         }
-        visible = true;
-        for c in 0..column {
-            if self.value(row, c) >= value && column != c {
-                visible = false;
-                break;
-            }
-        }
-        if visible {
+        if (0..column).all(|c| self.value(row, c) < value) {
             return true;
         }
-        visible = true;
-        for c in column + 1..self.columns {
-            if self.value(row, c) >= value && column != c {
-                visible = false;
-                break;
-            }
-        }
-        if visible {
+        if (column + 1..self.columns).all(|c| self.value(row, c) < value) {
             return true;
         }
 
-        return false;
+        false
     }
 }
 
@@ -132,7 +112,7 @@ fn aoc08_1(map: &Map) {
 
 fn aoc08_2(map: &Map) {
     println!("solving AOC day 8 part 2");
-    let mut score: u32 = 0;
+    let mut score: usize = 0;
 
     for row in 0..map.rows {
         for column in 0..map.columns {
@@ -151,13 +131,17 @@ fn aoc08_2(map: &Map) {
 pub fn aoc08() {
     let reader = BufReader::new(File::open("input-08").unwrap());
 
-    let mut matrix: Vec<Vec<u32>> = vec![];
+    let mut matrix: Vec<Vec<usize>> = vec![];
     let mut rows: usize = 0;
     let mut columns: usize = 0;
 
     for (_index, line) in reader.lines().enumerate() {
         let line = line.unwrap();
-        matrix.push(line.chars().map(|c| c.to_digit(RADIX).unwrap()).collect());
+        matrix.push(
+            line.chars()
+                .map(|c| c.to_digit(RADIX).unwrap().try_into().unwrap())
+                .collect(),
+        );
         rows += 1;
         if columns == 0 {
             columns = line.len();
