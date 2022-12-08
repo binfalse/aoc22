@@ -10,7 +10,7 @@ struct Path {
     file: bool,
 }
 
-fn get_parent(path: String) -> String {
+fn get_parent<'a>(path: &'a str) -> &'a str {
     return path.substring(0, path.rfind("/").unwrap()).into();
 }
 
@@ -83,9 +83,9 @@ pub fn aoc07() {
         if line.starts_with("$ cd ") {
             let d = line.substring(5, line.len());
             if d == ".." {
-                current_path = get_parent(current_path);
+                current_path = get_parent(&current_path).into();
             } else {
-                current_path = format!("{}/{}", current_path, d);
+                current_path = current_path + "/" + d;
             }
             continue;
         }
@@ -109,16 +109,15 @@ pub fn aoc07() {
         })
     }
 
-    let mut paths2: Vec<Path> = vec![];
-    for path in paths.iter() {
-        paths2.push(path.clone());
-    }
-
-    for p in paths.iter_mut() {
+    for i in 0..paths.len() {
+        let p = paths.get(i).unwrap();
         if p.file {
             continue;
         }
-        p.size = get_dirsize(&paths2, &p.path);
+        let size = get_dirsize(&paths, &p.path);
+
+        let mut p = paths.get_mut(i).unwrap();
+        p.size = size;
     }
 
     aoc07_1(&paths);
