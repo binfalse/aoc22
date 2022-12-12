@@ -1,3 +1,7 @@
+
+#[macro_use]
+extern crate queues;
+
 use chrono::{Datelike,  Utc};
 use std::env;
 use parse_int::parse;
@@ -11,6 +15,8 @@ mod aoc06;
 mod aoc07;
 mod aoc08;
 mod aoc09;
+mod aoc10;
+mod aoc11;
 
 use crate::aoc01::aoc01;
 use crate::aoc02::aoc02;
@@ -21,6 +27,8 @@ use crate::aoc06::aoc06;
 use crate::aoc07::aoc07;
 use crate::aoc08::aoc08;
 use crate::aoc09::aoc09;
+use crate::aoc10::aoc10;
+use crate::aoc11::aoc11;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -46,6 +54,8 @@ fn main() {
         7 => aoc07(),
         8 => aoc08(),
         9 => aoc09(),
+        10 => aoc10(),
+        11 => aoc11(),
 _=>panic!(),
     }
 }
