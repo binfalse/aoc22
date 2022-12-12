@@ -1,3 +1,7 @@
+
+#[macro_use]
+extern crate queues;
+
 use chrono::{Datelike, Utc};
 use parse_int::parse;
 use std::env;

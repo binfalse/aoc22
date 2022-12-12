@@ -146,7 +146,7 @@ fn aoc12_1() {
 
 fn aoc12_2() {
     println!("solving AOC day 12 part 2");
-    let reader = BufReader::new(File::open("input-12-mp.txt").unwrap());
+    let reader = BufReader::new(File::open("input-12").unwrap());
 
     let mut map = Map::new();
 
