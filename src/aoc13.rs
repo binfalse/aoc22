@@ -1,16 +1,10 @@
-use min_max::*;
-use parse_int::parse;
+use std::cmp::Ordering;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::ops::Deref;
-use substring::Substring;
+use std::slice::SliceIndex;
 
 const RADIX: u32 = 10;
-
-fn strip_stuff(s: &str) -> String {
-    s.replace("[", "").replace("]", "").replace(",", "")
-}
 
 fn is_num(c: &char) -> bool {
     let digit = c.clone() as isize - 48;
@@ -18,91 +12,87 @@ fn is_num(c: &char) -> bool {
 }
 
 #[derive(Debug, Clone)]
-struct Pair {
-    part1: String,
-    part2: String,
+struct Packet {
+    line: String,
 }
 
-impl Pair {
-    fn compare(&self, debug: bool) -> bool {
-        // let numbers1: Vec<char> = strip_stuff(&self.part1).chars().into_iter().collect();
-        // let numbers2: Vec<char> = strip_stuff(&self.part2).chars().into_iter().collect();
+impl fmt::Display for Packet {
+    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Write strictly the first element into the supplied output
+        // stream: `f`. Returns `fmt::Result` which indicates whether the
+        // operation succeeded or failed. Note that `write!` uses syntax which
+        // is very similar to `println!`.
+        write!(f, "{}", self.line)
+    }
+}
+
+impl Packet {
+    fn new(line: &str) -> Packet {
+        Packet {
+            line: line.to_string(),
+        }
+    }
+
+    fn compare(&self, other: &Packet) -> Ordering {
+        let numbers1: Vec<char> = self.line.chars().into_iter().collect();
+        let numbers2: Vec<char> = other.line.chars().into_iter().collect();
+
         let mut n1 = 0;
         let mut n2 = 0;
-        let mut deepnes1 = 0;
-        let mut deepnes2 = 0;
-        let mut compared_different_deepnes = false;
-        let numbers1: Vec<char> = self.part1.chars().into_iter().collect();
-        let numbers2: Vec<char> = self.part2.chars().into_iter().collect();
+
+        let mut depth1 = 0;
+        let mut depth2 = 0;
+
+        let mut compared_different_depths = false;
 
         while n1 < numbers1.len() && n2 < numbers2.len() {
             let char1 = numbers1.get(n1).unwrap();
             let char2 = numbers2.get(n2).unwrap();
 
-            if deepnes1 == deepnes2 {
-                compared_different_deepnes = false;
+            if depth1 == depth2 {
+                compared_different_depths = false;
             }
             match (char1, char2) {
                 (',', ',') => {}
                 ('[', '[') => {
-                    if debug {
-                        println!("{}-{}: {} vs {} deeper in both", n1, n2, char1, char2);
-                    }
-                    deepnes1 += 1;
-                    deepnes2 += 1;
+                    depth1 += 1;
+                    depth2 += 1;
                 }
                 (']', ']') => {
-                    if debug {
-                        println!("{}-{}: {} vs {} up in both", n1, n2, char1, char2);
-                    }
-                    if deepnes1 != deepnes2 {
-                        if debug {
-                            println!(
-                                "{}-{}: up in booth at different deepnes {}-{}",
-                                n1, n2, deepnes1, deepnes2
-                            );
+                    if depth1 != depth2 {
+                        if depth1 < depth2 {
+                            return Ordering::Less;
+                        } else {
+                            return Ordering::Greater;
                         }
-                        return deepnes1 < deepnes2;
                     }
-                    deepnes1 -= 1;
-                    deepnes2 -= 1;
+                    depth1 -= 1;
+                    depth2 -= 1;
                 }
                 ('[', _) => {
-                    if debug {
-                        println!("{}-{}: {} vs {} deeper in 1", n1, n2, char1, char2);
-                    }
-                    deepnes1 += 1;
+                    depth1 += 1;
                     n2 -= 1;
                 }
                 (_, '[') => {
-                    if debug {
-                        println!("{}-{}: {} vs {} deeper in 2", n1, n2, char1, char2);
-                    }
-                    deepnes2 += 1;
+                    depth2 += 1;
                     n1 -= 1;
                 }
                 (_, ']') => {
-                    if debug {
-                        println!("{}-{}: {} vs {} is {}", n1, n2, char1, char2, false);
-                    }
-                    return false;
+                    return Ordering::Greater;
                 }
                 (']', _) => {
-                    if debug {
-                        println!("{}-{}: {} vs {} is {}", n1, n2, char1, char2, true);
-                    }
-                    return true;
+                    return Ordering::Less;
                 }
                 (a, b) => {
-                    if compared_different_deepnes && deepnes1 != deepnes2 {
-                        if debug {
-                            println!(
-                                "{}-{}: {} vs {} at different deepnes {}-{} is {}",
-                                n1, n2, char1, char2, deepnes1, deepnes2, true
-                            );
+                    if compared_different_depths && depth1 != depth2 {
+                        if depth1 < depth2 {
+                            return Ordering::Less;
+                        } else {
+                            return Ordering::Greater;
                         }
-                        return deepnes1 < deepnes2;
                     }
+
                     let mut number1 = a.to_digit(RADIX).unwrap();
                     let mut number2 = b.to_digit(RADIX).unwrap();
 
@@ -118,81 +108,30 @@ impl Pair {
                     }
 
                     if number1 < number2 {
-                        if debug {
-                            println!("{}-{}: {} vs {} is {}", n1, n2, char1, char2, true);
-                        }
-                        return true;
+                        return Ordering::Less;
                     } else if number1 > number2 {
-                        if debug {
-                            println!("{}-{}: {} vs {} is {}", n1, n2, char1, char2, false);
-                        }
-                        return false;
+                        return Ordering::Greater;
                     }
-                    if deepnes1 != deepnes2 {
-                        compared_different_deepnes = true;
+
+                    if depth1 != depth2 {
+                        compared_different_depths = true;
                     }
                 }
             }
             n1 += 1;
             n2 += 1;
         }
-        if n1 == numbers1.len() && n2 == numbers2.len() {
-            panic!("pairs both at end? {:?} {:?}", numbers1, numbers2)
-        }
 
+        if n1 == numbers1.len() && n2 == numbers2.len() {
+            return Ordering::Equal;
+        }
         if n1 == numbers1.len() {
-            return true;
+            return Ordering::Less;
         }
         if n2 == numbers2.len() {
-            return false;
+            return Ordering::Greater;
         }
         panic!("wtf {} {} {:?} {:?}", n1, n2, numbers1, numbers2)
-    }
-}
-
-impl fmt::Display for Pair {
-    // This trait requires `fmt` with this exact signature.
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Write strictly the first element into the supplied output
-        // stream: `f`. Returns `fmt::Result` which indicates whether the
-        // operation succeeded or failed. Note that `write!` uses syntax which
-        // is very similar to `println!`.
-        write!(f, "{}\n{}", self.part1, self.part2)
-    }
-}
-
-#[derive(Debug, Clone)]
-struct PairBuilder {
-    part1: Option<String>,
-    part2: Option<String>,
-}
-
-impl PairBuilder {
-    fn read(&mut self, line: &str) {
-        match self.part1 {
-            Some(_) => self.part2 = Some(line.to_string()),
-            None => self.part1 = Some(line.to_string()),
-        }
-    }
-
-    fn clean(&mut self) {
-        self.part1 = None;
-        self.part2 = None;
-    }
-
-    fn build(&mut self) -> Pair {
-        let x = self.clone();
-
-        let p = Pair {
-            part1: x.part1.unwrap(),
-            part2: x.part2.unwrap(),
-        };
-        self.clean();
-        p
-    }
-
-    fn ready(&self) -> bool {
-        self.part1 != None && self.part2 != None
     }
 }
 
@@ -200,35 +139,26 @@ fn aoc13_1() {
     println!("solving AOC day 13 part 1");
     let reader = BufReader::new(File::open("input-13").unwrap());
 
-    let mut pb = PairBuilder {
-        part1: None,
-        part2: None,
-    };
-
-    let mut sum = 0;
-    let mut i = 0;
+    let mut packets: Vec<Packet> = vec![];
 
     for (_index, line) in reader.lines().enumerate() {
         let line = line.unwrap();
-        if line == "" {
-            continue;
-        }
-        pb.read(&line);
-        if pb.ready() {
-            i += 1;
-            let pair = pb.build();
-            let result = pair.compare(i == 19);
-            println!("{} {}", i, result);
-            if i == 19 {
-                println!("\n\n{}", pair);
-            }
-            // println!("\n\n{} {}\n{}", i, result, pair);
-            if result {
-                sum += i;
-            }
+        if line != "" {
+            packets.push(Packet::new(&line));
         }
     }
-    // 5857 is too high
+
+    let mut sum = 0;
+    let mut pair = 0;
+    while pair + 1 < packets.len() {
+        let p1 = packets.get(pair).unwrap();
+        let p2 = packets.get(pair + 1).unwrap();
+        if p1.compare(p2) == Ordering::Less {
+            sum += pair / 2 + 1;
+        }
+        pair += 2;
+    }
+
     println!("solution: {}", sum);
 }
 
@@ -236,11 +166,27 @@ fn aoc13_2() {
     println!("solving AOC day 13 part 2");
     let reader = BufReader::new(File::open("input-13").unwrap());
 
+    let mut packets: Vec<Packet> = vec![];
+
     for (_index, line) in reader.lines().enumerate() {
         let line = line.unwrap();
+        if line == "" {
+            continue;
+        }
+        packets.push(Packet::new(&line));
     }
+    packets.push(Packet::new("[[2]]"));
+    packets.push(Packet::new("[[6]]"));
 
-    println!("solution: {}", 0);
+    packets.sort_by(|a, b| a.compare(b));
+
+    let mut solution = 1;
+    for (i, el) in packets.iter().enumerate() {
+        if el.line == "[[2]]" || el.line == "[[6]]" {
+            solution *= i + 1;
+        }
+    }
+    println!("solution: {}", solution);
 }
 
 pub fn aoc13() {
