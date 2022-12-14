@@ -1,4 +1,3 @@
-use core::fmt;
 use parse_int::parse;
 use regex::Regex;
 use std::fs::File;
@@ -22,12 +21,6 @@ impl Stack {
         self.chars.splice((l - num)..(l), []).collect()
     }
 }
-
-/*impl fmt::Display for Stack {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.chars)
-    }
-}*/
 
 struct Action {
     num: usize,
@@ -123,12 +116,6 @@ pub fn aoc05() {
         }
     }
 
-    // let mut stacks2: Vec<Mutex<Stack>> = vec![];
-    // for stack in stacks.iter() {
-    // stacks2.push(Mutex::new(Stack {
-    // chars: stack.lock().unwrap().chars.to_vec(),
-    // }));
-    // }
     let mut stacks2 = stacks
         .iter()
         .map(|s| Mutex::new(s.lock().unwrap().clone()))

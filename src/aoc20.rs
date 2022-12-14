@@ -1,8 +1,8 @@
-use min_max::*;
-use parse_int::parse;
+// use min_max::*;
+// use parse_int::parse;
+// use substring::Substring;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use substring::Substring;
 
 fn aoc20_1() {
     println!("solving AOC day 20 part 1");

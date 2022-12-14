@@ -1,10 +1,9 @@
-
-#[macro_use]
 extern crate queues;
-
 use chrono::{Datelike, Utc};
 use parse_int::parse;
 use std::env;
+use std::error::Error;
+use std::io;
 
 mod aoc01;
 mod aoc02;
@@ -58,16 +57,16 @@ use crate::aoc23::aoc23;
 use crate::aoc24::aoc24;
 use crate::aoc25::aoc25;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     let now = Utc::now();
     let mut today = now.day();
 
     if args.len() > 1 {
-        // let d = parse::<u32>(&args[1])?;
-        if let Ok(d) = parse::<u32>(&args[1]) {
-            today = d;
-        }
+        today = parse::<u32>(&args[1])?;
+        // if let Ok(d) = parse::<u32>(&args[1]) {
+        //     today = d;
+        // }
     }
 
     println!("solving AOC day {}", today);
@@ -100,5 +99,6 @@ fn main() {
         25 => aoc25(),
 
         _ => panic!(),
-    }
+    };
+    Ok(())
 }

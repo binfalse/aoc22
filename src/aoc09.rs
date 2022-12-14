@@ -35,7 +35,6 @@ impl Position {
     }
 
     fn need_move(&self, other: &Position) -> bool {
-        // println!("need move? {:?} {:?}", self, other);
         (self.x).abs_diff(other.x) > 1 || self.y.abs_diff(other.y) > 1
     }
 
