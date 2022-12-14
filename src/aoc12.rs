@@ -140,8 +140,6 @@ fn aoc12_1() {
     }
 
     println!("solution: {:?}", map.run());
-
-    // println!("solution: {:?}", map);
 }
 
 fn aoc12_2() {

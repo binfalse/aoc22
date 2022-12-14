@@ -1,4 +1,3 @@
-use core::fmt;
 use parse_int::parse;
 use regex::Regex;
 use std::fs::File;
@@ -23,12 +22,6 @@ impl Stack {
     }
 }
 
-/*impl fmt::Display for Stack {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.chars)
-    }
-}*/
-
 struct Action {
     num: usize,
     from: usize,
@@ -39,7 +32,7 @@ impl Action {
     fn new(line: &str) -> Action {
         let re = Regex::new(r"^move (\d+) from (\d+) to (\d+)$").unwrap();
         for cap in re.captures_iter(&line) {
-            let mut num = parse::<usize>(&cap[1]).unwrap();
+            let num = parse::<usize>(&cap[1]).unwrap();
             let from = parse::<usize>(&cap[2]).unwrap();
             let to = parse::<usize>(&cap[3]).unwrap();
             return Action {
@@ -123,12 +116,6 @@ pub fn aoc05() {
         }
     }
 
-    // let mut stacks2: Vec<Mutex<Stack>> = vec![];
-    // for stack in stacks.iter() {
-    // stacks2.push(Mutex::new(Stack {
-    // chars: stack.lock().unwrap().chars.to_vec(),
-    // }));
-    // }
     let mut stacks2 = stacks
         .iter()
         .map(|s| Mutex::new(s.lock().unwrap().clone()))

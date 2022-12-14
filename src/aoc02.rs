@@ -1,4 +1,3 @@
-// use parse_int::parse;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
@@ -29,9 +28,9 @@ fn outcome(line: &str) -> i32 {
         // _ => return 0
         &_ => (),
     };
-     panic!("ne message");
+    panic!("ne message");
 }
-fn rewrite_line (line: &str) -> &'static str {
+fn rewrite_line(line: &str) -> &'static str {
     match line {
         "A X" => return "A Z",
         "A Y" => return "A X",
@@ -42,7 +41,7 @@ fn rewrite_line (line: &str) -> &'static str {
         "C X" => return "C Y",
         "C Y" => return "C Z",
         "C Z" => return "C X",
-        _ => panic!("ne message")
+        _ => panic!("ne message"),
     }
 }
 
@@ -52,7 +51,7 @@ pub fn aoc02() {
 
     for (_index, line) in reader.lines().enumerate() {
         let line = line.unwrap();
-    
+
         let line2 = rewrite_line(&line);
         score += my_score(&line2) + outcome(&line2);
     }

@@ -2,7 +2,6 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::slice::SliceIndex;
 
 const RADIX: u32 = 10;
 
@@ -17,12 +16,7 @@ struct Packet {
 }
 
 impl fmt::Display for Packet {
-    // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        // Write strictly the first element into the supplied output
-        // stream: `f`. Returns `fmt::Result` which indicates whether the
-        // operation succeeded or failed. Note that `write!` uses syntax which
-        // is very similar to `println!`.
         write!(f, "{}", self.line)
     }
 }

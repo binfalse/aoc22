@@ -35,7 +35,6 @@ impl Position {
     }
 
     fn need_move(&self, other: &Position) -> bool {
-        // println!("need move? {:?} {:?}", self, other);
         (self.x).abs_diff(other.x) > 1 || self.y.abs_diff(other.y) > 1
     }
 
@@ -137,7 +136,6 @@ fn aoc09_2() {
     println!("solving AOC day 9 part 2");
     let reader = BufReader::new(File::open("input-09").unwrap());
 
-    let mut score: usize = 0;
     let mut head = Position::new(0, 0);
     let mut tails: Vec<Tail> = vec![];
     while tails.len() < 9 {

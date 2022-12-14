@@ -1,9 +1,7 @@
 use min_max::*;
-use std::fmt::{self, Display};
+use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::ops::{Deref, Range};
-use std::option::Iter;
 
 const RADIX: u32 = 10;
 
@@ -13,11 +11,13 @@ struct Map {
     rows: usize,
     columns: usize,
 }
+
 impl fmt::Display for Map {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.matrix)
     }
 }
+
 impl Map {
     fn value(&self, row: usize, column: usize) -> usize {
         self.matrix.get(row).unwrap().get(column).unwrap().clone()
@@ -56,7 +56,7 @@ impl Map {
         // rows after
         score *= min!(
             self.rows - row - 1,
-            self.scenic_score_row((row + 1..self.rows), column, value) + 1
+            self.scenic_score_row(row + 1..self.rows, column, value) + 1
         );
 
         // cols before
