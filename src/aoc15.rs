@@ -1,9 +1,56 @@
 use min_max::*;
 use parse_int::parse;
 use regex::Regex;
+use std::collections::BTreeSet;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use std::thread::JoinHandle;
+use std::time::Instant;
 use std::{fmt, thread, time};
+
+use fasthash::spooky::Hash32;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Sensor {
+    x: isize,
+    y: isize,
+    dist: usize,
+}
+impl Sensor {
+    fn dist(&self, x: isize, y: isize) -> usize {
+        self.x.abs_diff(x) + self.y.abs_diff(y)
+    }
+    fn dist_p(&self, other: &Position) -> usize {
+        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
+    }
+    fn get_options(&self, other_sensors: &Vec<Sensor>) -> Vec<Position> {
+        let mut options = vec![];
+        let coverage = self.dist as isize;
+
+        for x in self.x - coverage - 1..=self.x + coverage + 1 {
+            if x < 0 || x > 4000000 {
+                continue;
+            }
+            let dist = self.dist(x, self.y) as isize;
+            let y1 = self.y - (coverage - dist) - 1;
+            if y1 >= 0 && y1 <= 4000000 {
+                options.push(Position { x, y: y1 })
+            }
+
+            let y2 = self.y + (coverage - dist) + 1;
+            if y2 >= 0 && y2 <= 4000000 {
+                options.push(Position { x, y: y2 });
+            }
+        }
+        let x: Vec<Position> = options
+            .iter()
+            .filter(|o| !other_sensors.iter().any(|s| s.dist_p(o) < s.dist))
+            .map(|o| o.clone())
+            .collect();
+        x
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Position {
@@ -18,11 +65,71 @@ impl Position {
     fn dist_p(&self, other: &Position) -> usize {
         self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
     }
+    fn get_options(&self, other: &Position) -> Vec<Position> {
+        let mut options = vec![];
+        let coverage = self.dist_p(other) as isize;
+
+        for x in self.x - coverage - 1..=self.x + coverage + 1 {
+            if x < 0 || x > 4000000 {
+                continue;
+            }
+            let dist = self.dist(x, self.x) as isize;
+            let y1 = self.y - (coverage - dist) - 1;
+            if y1 >= 0 && y1 <= 4000000 {
+                options.push(Position { x, y: y1 })
+            }
+
+            let y2 = self.y + (coverage - dist) + 1;
+            if y2 >= 0 && y2 <= 4000000 {
+                options.push(Position { x, y: y2 });
+            }
+            // let y1 = sensor.y - (sensor_coverage - dist) - 1;
+            // let y2 = sensor.y - (sensor_coverage - dist) - 1;
+
+            // if y1 >= miny && y1 <= maxy && Self::uncovered(&sensor, &beacon, x, y1) {
+            //     return Some(x * 4000000 + y1);
+            // }
+            // if y2 >= miny && y2 <= maxy && Self::uncovered(x, y2) {
+            //     return Some(x * 4000000 + y2);
+            // }
+        }
+        //     }
+        options
+    }
+}
+
+#[derive(Debug, Clone)]
+struct BoundingBox {
+    minx: isize,
+    maxx: isize,
+}
+
+impl BoundingBox {
+    fn overlaps(&self, other: &BoundingBox) -> bool {
+        let other_first = self.minx <= other.maxx && self.maxx >= other.minx;
+        let this_first = other.minx <= self.maxx && other.maxx >= self.minx;
+        other_first || this_first
+    }
+
+    fn extend(&mut self, other: &BoundingBox) {
+        self.minx = min!(self.minx, other.minx);
+        self.maxx = max!(self.maxx, other.maxx);
+    }
+
+    fn plus(&self, other: &BoundingBox) -> BoundingBox {
+        BoundingBox {
+            minx: min!(self.minx, other.minx),
+            maxx: max!(self.maxx, other.maxx),
+        }
+    }
+    fn size(&self) -> isize {
+        return self.maxx - self.minx;
+    }
 }
 
 #[derive(Debug, Clone)]
 struct Map {
-    sensors: Vec<Position>,
+    sensors: Vec<Sensor>,
     beacons: Vec<Position>,
     minx: isize,
     maxx: isize,
@@ -42,35 +149,6 @@ impl Map {
         }
     }
 
-    fn update_bounding_box(&mut self) {
-        for s in 0..self.sensors.len() {
-            let sensor = self.sensors.get(s).unwrap();
-            let beacon = self.beacons.get(s).unwrap();
-            let sensor_coverage: isize = sensor.dist_p(beacon) as isize;
-
-            self.minx = min!(
-                self.minx,
-                sensor.x - sensor_coverage,
-                sensor.x + sensor_coverage
-            );
-            self.maxx = max!(
-                self.maxx,
-                sensor.x - sensor_coverage,
-                sensor.x + sensor_coverage
-            );
-            self.miny = min!(
-                self.miny,
-                sensor.y - sensor_coverage,
-                sensor.y + sensor_coverage
-            );
-            self.maxy = max!(
-                self.maxy,
-                sensor.y - sensor_coverage,
-                sensor.y + sensor_coverage
-            );
-        }
-    }
-
     fn set(&mut self, line: &str) {
         let re = Regex::new(
             r"^Sensor at x=([-\d]+), y=([-\d]+): closest beacon is at x=([-\d]+), y=([-\d]+)$",
@@ -81,20 +159,78 @@ impl Map {
             let sy = parse::<isize>(&cap[2]).unwrap();
             let bx = parse::<isize>(&cap[3]).unwrap();
             let by = parse::<isize>(&cap[4]).unwrap();
+            let beacon = Position { x: bx, y: by };
 
-            self.sensors.push(Position { x: sx, y: sy });
-            self.beacons.push(Position { x: bx, y: by });
+            self.sensors.push(Sensor {
+                x: sx,
+                y: sy,
+                dist: beacon.dist(sx, sy),
+            });
+            self.beacons.push(beacon);
         }
     }
 
-    fn beacon_absense(&self, line: isize) -> usize {
-        let mut covered = 0;
-        for x in self.minx..=self.maxx {
-            if self.covered(x, line) {
-                covered += 1;
+    fn beacon_absense(&self, line: isize) -> isize {
+        let mut handles: Vec<JoinHandle<Option<BoundingBox>>> = vec![];
+        let mut coverage: Vec<BoundingBox> = vec![];
+
+        for s in 0..self.sensors.len() {
+            let sensor = self.sensors.get(s).unwrap().clone();
+            let beacon = self.beacons.get(s).unwrap().clone();
+            handles.push(thread::spawn(move || {
+                let sensor_coverage = sensor.dist_p(&beacon) as isize;
+
+                let mut cov_start: Option<isize> = None;
+                for x in sensor.x - sensor_coverage..=sensor.x + sensor_coverage {
+                    if sensor.dist(x, line) as isize <= sensor_coverage {
+                        if cov_start == None {
+                            cov_start = Some(x)
+                        }
+                    } else {
+                        if let Some(c) = cov_start {
+                            return Some(BoundingBox {
+                                minx: c,
+                                maxx: x - 1,
+                            });
+                        }
+                    }
+                }
+                return None;
+            }));
+        }
+
+        while handles.len() > 0 {
+            let handle = handles.remove(0);
+            if let Some(handle_coverage) = handle.join().unwrap() {
+                coverage.push(handle_coverage.clone());
             }
         }
-        covered
+        coverage.sort_by(|a, b| a.minx.cmp(&b.minx));
+
+        let mut size: isize = 0;
+        let mut coverage2: Vec<BoundingBox> = vec![coverage.get(0).unwrap().clone()];
+        let mut pushed = false;
+
+        for c in 1..coverage.len() {
+            let cov = coverage.get(c).unwrap();
+            let l = coverage2.len();
+            let last_c = coverage2.get_mut(l - 1).unwrap();
+            if last_c.overlaps(&cov) {
+                last_c.extend(cov);
+                pushed = false;
+            } else {
+                size += last_c.size();
+                pushed = true;
+                coverage2.push(cov.clone());
+            }
+        }
+
+        if !pushed {
+            let last_c = coverage2.get(coverage2.len() - 1).unwrap();
+            size += last_c.size();
+        }
+
+        return size;
     }
 
     fn covered(&self, x: isize, y: isize) -> bool {
@@ -115,47 +251,27 @@ impl Map {
         false
     }
 
-    fn uncovered(&self, x: isize, y: isize) -> bool {
+    fn find_distress_beacon(&self) -> isize {
+        let mut handles: Vec<JoinHandle<Vec<Position>>> = vec![];
+
         for s in 0..self.sensors.len() {
-            let sensor = self.sensors.get(s).unwrap();
-            let beacon = self.beacons.get(s).unwrap();
-            let sensor_coverage = sensor.dist_p(beacon);
-            if x == sensor.x && y == sensor.y {
-                return false;
-            }
-            if x == beacon.x && y == beacon.y {
-                return false;
-            }
-            if sensor.dist(x, y) <= sensor_coverage {
-                return false;
+            let sensor = self.sensors.get(s).unwrap().clone();
+            let all_sensors = self.sensors.clone();
+            handles.push(thread::spawn(move || {
+                return sensor.get_options(&all_sensors);
+            }));
+        }
+
+        while handles.len() > 0 {
+            let len = handles.len();
+            let handle = handles.remove(len / 2);
+            let options = handle.join().unwrap();
+            if options.len() > 0 {
+                let option = options.get(0).unwrap();
+                return option.x * 4000000 + option.y;
             }
         }
-        true
-    }
 
-    fn find_distress_beacon(&self, minx: isize, maxx: isize, miny: isize, maxy: isize) -> isize {
-        print!("checking sensors: ");
-        for s in (0..self.sensors.len()).rev() {
-            print!(" {} ", s);
-            let sensor = self.sensors.get(s).unwrap();
-            let beacon = self.beacons.get(s).unwrap();
-            let sensor_coverage = sensor.dist_p(beacon) as isize;
-
-            for x in sensor.x - sensor_coverage - 1..=sensor.x + sensor_coverage + 1 {
-                if x < minx || x > maxx {
-                    continue;
-                }
-                let dist = sensor.dist(x, sensor.y) as isize;
-                let y1 = sensor.y - (sensor_coverage - dist) - 1;
-                let y2 = sensor.y - (sensor_coverage - dist) - 1;
-                if y1 >= miny && y1 <= maxy && self.uncovered(x, y1) {
-                    return x * 4000000 + y1;
-                }
-                if y2 >= miny && y2 <= maxy && self.uncovered(x, y2) {
-                    return x * 4000000 + y2;
-                }
-            }
-        }
         panic!("cannot find distress signal");
     }
 
@@ -202,16 +318,17 @@ impl fmt::Display for Map {
     }
 }
 fn aoc15_1(map: &Map) {
-    println!("solving AOC day 15 part 1");
-
-    // println!("solution: {}", map.beacon_absense(10));
-    println!("solution: {}", map.beacon_absense(2000000));
+    println!(
+        "--solving AOC day 15 part 1\nsolution {}",
+        map.beacon_absense(2000000)
+    );
 }
 
 fn aoc15_2(map: &Map) {
-    println!("solving AOC day 15 part 2");
-    let signal = map.find_distress_beacon(0, 4000000, 0, 4000000);
-    println!("\ndistress {}", signal);
+    println!(
+        "--solving AOC day 15 part 2\ndistress sig {}",
+        map.find_distress_beacon()
+    );
 }
 
 pub fn aoc15() {
@@ -221,9 +338,15 @@ pub fn aoc15() {
         let line = line.unwrap();
         map.set(&line);
     }
-    map.update_bounding_box();
-    println!("map dimensions: {}", map);
-    // map.print();
-    aoc15_1(&map);
-    aoc15_2(&map);
+
+    let map2 = map.clone();
+
+    let a = thread::spawn(move || {
+        aoc15_1(&map);
+    });
+    let b = thread::spawn(move || {
+        aoc15_2(&map2);
+    });
+    a.join().unwrap();
+    b.join().unwrap();
 }
