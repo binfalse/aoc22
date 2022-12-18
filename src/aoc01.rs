@@ -9,7 +9,7 @@ pub fn aoc01() {
     let mut current_calories = 0;
 
     for (_index, line) in reader.lines().enumerate() {
-        let line = line.unwrap(); // Ignore errors.
+        let line = line.unwrap();
 
         if line.len() < 1 {
             elves.push(current_calories);

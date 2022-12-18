@@ -136,7 +136,6 @@ fn aoc09_2() {
     println!("solving AOC day 9 part 2");
     let reader = BufReader::new(File::open("input-09").unwrap());
 
-    let mut score: usize = 0;
     let mut head = Position::new(0, 0);
     let mut tails: Vec<Tail> = vec![];
     while tails.len() < 9 {

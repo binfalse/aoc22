@@ -32,7 +32,7 @@ impl Action {
     fn new(line: &str) -> Action {
         let re = Regex::new(r"^move (\d+) from (\d+) to (\d+)$").unwrap();
         for cap in re.captures_iter(&line) {
-            let mut num = parse::<usize>(&cap[1]).unwrap();
+            let num = parse::<usize>(&cap[1]).unwrap();
             let from = parse::<usize>(&cap[2]).unwrap();
             let to = parse::<usize>(&cap[3]).unwrap();
             return Action {
