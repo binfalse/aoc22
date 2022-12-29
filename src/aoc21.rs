@@ -66,7 +66,6 @@ impl Monkeys {
                 let var = &cap[1];
                 if include_human || var != "humn" {
                     let replacement = self.map.get(var).unwrap();
-                    // println!("   {} => {}", var, replacement);
                     if has_vars.is_match(&replacement) {
                         new_calc = new_calc.replace(var, &format!("({})", replacement));
                     } else {
@@ -75,7 +74,6 @@ impl Monkeys {
                     replaced = true;
                 }
             }
-            // println!("{} => {}", self.calc, new_calc);
             self.calc = new_calc;
         }
         self.calc.clone()
