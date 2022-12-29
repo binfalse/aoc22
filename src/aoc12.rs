@@ -85,6 +85,7 @@ impl Map {
         panic!();
     }
 
+    #[allow(dead_code)]
     fn print(&self) {
         println!();
         println!("ELEVATIONS");
@@ -174,7 +175,6 @@ fn aoc12_2() {
     }
 
     println!("solution: {:?}", map.run());
-    map.print();
 }
 
 pub fn aoc12() {

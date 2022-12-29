@@ -97,6 +97,7 @@ impl Rock {
         self.positions[4].x < 6
     }
 
+    #[allow(dead_code)]
     fn contains(&self, x: isize, y: isize) -> bool {
         for i in 0..5 {
             if self.positions[i].x == x && self.positions[i].y == y {
@@ -166,6 +167,7 @@ impl Map {
         }
     }
 
+    #[allow(dead_code)]
     fn print_rock(&self, rock: &Rock) {
         println!("\n\nvvvvvvv");
         for y in 0..self.top + 7 {
@@ -182,6 +184,7 @@ impl Map {
         }
     }
 
+    #[allow(dead_code)]
     fn print(&self) {
         println!("\n\nvvvvvvv");
         for y in 0..self.top + 7 {
@@ -196,6 +199,7 @@ impl Map {
         }
     }
 
+    #[allow(dead_code)]
     fn collides_coord(&self, x: isize, y: isize) -> bool {
         self.positions.iter().any(|p| p.x == x && p.y == y)
     }

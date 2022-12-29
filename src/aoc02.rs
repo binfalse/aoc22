@@ -46,15 +46,18 @@ fn rewrite_line(line: &str) -> &'static str {
 }
 
 pub fn aoc02() {
-    let reader = BufReader::new(File::open("inputs/input-02").unwrap());
-    let mut score: i32 = 0;
+    let reader = BufReader::new(File::open("input-02").unwrap());
+    let mut score1: i32 = 0;
+    let mut score2: i32 = 0;
 
     for (_index, line) in reader.lines().enumerate() {
         let line = line.unwrap();
 
-        let line2 = rewrite_line(&line);
-        score += my_score(&line2) + outcome(&line2);
+        score1 += my_score(&line) + outcome(&line);
+        let line = rewrite_line(&line);
+        score2 += my_score(&line) + outcome(&line);
     }
 
-    println!("score: {}", score);
+    println!("score part 1: {}", score1);
+    println!("score part 2: {}", score2);
 }

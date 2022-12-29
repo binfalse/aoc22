@@ -1,20 +1,15 @@
-// use min_max::*;
 use parse_int::parse;
-// use substring::Substring;
 use itertools::Itertools;
 use overload::overload;
-use priority_queue::PriorityQueue;
 use rayon::prelude::*;
 use regex::Regex;
 use std::cmp::Ordering;
-use std::collections::HashSet;
 use std::fmt::Debug;
-use std::fmt::Formatter;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::ops;
 use std::thread::JoinHandle;
-use std::{fmt, thread, time};
+use std::thread;
 
 #[derive(Clone, Hash, Eq, PartialEq)]
 struct InventoryState {

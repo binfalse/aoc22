@@ -11,10 +11,6 @@ struct Point {
 }
 
 impl Point {
-    fn dist(&self, other: &Point) -> usize {
-        self.x.abs_diff(other.x).pow(2) + self.y.abs_diff(other.y).pow(2)
-    }
-
     fn equals(&self, x: usize, y: usize) -> bool {
         self.x == x && self.y == y
     }

@@ -1,13 +1,9 @@
 use nom::branch::alt;
-use nom::bytes::complete::tag;
 use nom::character::complete::char;
-use nom::character::complete::digit1;
 use nom::character::complete::u8;
-use nom::multi::many0;
 use nom::multi::many1;
 use nom::IResult;
 use nom::*;
-use parse_int::parse;
 use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;

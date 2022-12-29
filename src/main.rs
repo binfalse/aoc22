@@ -1,10 +1,9 @@
-
 extern crate queues;
+
 use chrono::{Datelike, Utc};
 use parse_int::parse;
 use std::env;
 use std::error::Error;
-use std::io;
 
 mod aoc01;
 mod aoc02;

@@ -1,12 +1,9 @@
 use core::panic;
-// use min_max::*;
-// use parse_int::parse;
-// use substring::Substring;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 fn char_to_value(c: char) -> i64 {
-    match (c) {
+    match c {
         '=' => -2,
         '-' => -1,
         '0' => 0,

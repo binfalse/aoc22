@@ -1,15 +1,10 @@
 use min_max::*;
 use parse_int::parse;
 use regex::Regex;
-use std::collections::BTreeSet;
-use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::thread::JoinHandle;
-use std::time::Instant;
-use std::{fmt, thread, time};
-
-use fasthash::spooky::Hash32;
+use std::{fmt, thread};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Sensor {
@@ -65,6 +60,7 @@ impl Position {
     fn dist_p(&self, other: &Position) -> usize {
         self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
     }
+    #[allow(dead_code)]
     fn get_options(&self, other: &Position) -> Vec<Position> {
         let mut options = vec![];
         let coverage = self.dist_p(other) as isize;
@@ -116,12 +112,6 @@ impl BoundingBox {
         self.maxx = max!(self.maxx, other.maxx);
     }
 
-    fn plus(&self, other: &BoundingBox) -> BoundingBox {
-        BoundingBox {
-            minx: min!(self.minx, other.minx),
-            maxx: max!(self.maxx, other.maxx),
-        }
-    }
     fn size(&self) -> isize {
         return self.maxx - self.minx;
     }
@@ -292,6 +282,7 @@ impl Map {
         return '.';
     }
 
+    #[allow(dead_code)]
     fn print(&self) {
         print!("    ");
         for x in self.minx..=self.maxx {
