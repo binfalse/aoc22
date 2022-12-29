@@ -1,8 +1,12 @@
 use nom::branch::alt;
 use nom::bytes::complete::tag;
+use nom::character::complete::char;
 use nom::character::complete::digit1;
+use nom::character::complete::u8;
 use nom::multi::many0;
+use nom::multi::many1;
 use nom::IResult;
+use nom::*;
 use parse_int::parse;
 use std::collections::HashMap;
 use std::fmt;
@@ -395,41 +399,50 @@ impl fmt::Display for Map {
     }
 }
 
-fn parser_digit(input: &str) -> IResult<&str, Go> {
-    let recognised: IResult<&str, &str> = digit1(input);
+// previous approach of parsing
+// fn parser_digit(input: &str) -> IResult<&str, Go> {
+//     let recognised: IResult<&str, &str> = digit1(input);
 
-    if let Ok((input, result)) = recognised {
-        let number = parse::<u8>(&result);
-        if let Ok(n) = number {
-            return Ok((input, Go::STEPS(n)));
-        }
-    }
+//     if let Ok((input, result)) = recognised {
+//         let number = parse::<u8>(&result);
+//         if let Ok(n) = number {
+//             return Ok((input, Go::STEPS(n)));
+//         }
+//     }
 
-    return Err(nom::Err::Error(nom::error::Error::new(
-        "unrecognised digit",
-        nom::error::ErrorKind::NoneOf,
-    )));
-}
+//     return Err(nom::Err::Error(nom::error::Error::new(
+//         "unrecognised digit",
+//         nom::error::ErrorKind::NoneOf,
+//     )));
+// }
 
-fn parser_direction(input: &str) -> IResult<&str, Go> {
-    let (input, result) = alt((tag("L"), tag("R"), tag("T"), tag("B")))(input)?;
-    let direction = match result {
-        "L" => Direction::LEFT,
-        "R" => Direction::RIGHT,
-        "B" => Direction::DOWN,
-        "T" => Direction::UP,
-        _ => {
-            return Err(nom::Err::Error(nom::error::Error::new(
-                "unrecognised direction...",
-                nom::error::ErrorKind::Fail,
-            )))
-        }
-    };
-    Ok((input, Go::TURN(direction)))
-}
+// fn parser_direction(input: &str) -> IResult<&str, Go> {
+//     let (input, result) = alt((tag("L"), tag("R"), tag("T"), tag("B")))(input)?;
+//     let direction = match result {
+//         "L" => Direction::LEFT,
+//         "R" => Direction::RIGHT,
+//         "B" => Direction::DOWN,
+//         "T" => Direction::UP,
+//         _ => {
+//             return Err(nom::Err::Error(nom::error::Error::new(
+//                 "unrecognised direction...",
+//                 nom::error::ErrorKind::Fail,
+//             )))
+//         }
+//     };
+//     Ok((input, Go::TURN(direction)))
+// }
 
 fn parser(input: &str) -> IResult<&str, Vec<Go>> {
-    many0(alt((parser_direction, parser_digit)))(input)
+    // previous approach of parsing
+    // many0(alt((parser_direction, parser_digit)))(input)
+    many1(alt((
+        u8.map(|num| Go::STEPS(num)),
+        alt((
+            char('L').map(|_| Go::TURN(Direction::LEFT)),
+            char('R').map(|_| Go::TURN(Direction::RIGHT)),
+        )),
+    )))(input)
 }
 
 fn aoc22_1() {
